@@ -42,11 +42,10 @@ phases:
       - chmod 0755 -R calculator_deb/DEBIAN
       - dpkg-deb --build calculator_deb
 
+    
       ## ----------------- Windows Build using Wine ----------------- ##
       - echo "Building for Windows..."
-      - wget https://github.com/pyinstaller/pyinstaller/releases/download/v5.13.0/pyinstaller-5.13.0.zip
-      - unzip pyinstaller-5.13.0.zip
-      - WINEPREFIX=~/.wine winecfg -v win10
+      - WINEPREFIX=~/.wine winecfg -v win10 || true  # Init wine
       - pyinstaller --onefile --noconsole calculator.py --distpath dist_win
       - mv dist_win/calculator.exe dist/
 

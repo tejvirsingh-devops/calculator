@@ -2,9 +2,9 @@ version: 0.2
 
 env:
   variables:
-    S3_BUCKET: "calc-win-ubu-mac"  # Replace with your actual bucket name
+    S3_BUCKET: "calc-win-ubu-mac"
     APP_NAME: "calculator"
-    PLATFORM: "auto"  # Override with "windows", "linux", or "mac" in CodeBuild env if needed
+    PLATFORM: "auto"
 
 phases:
   install:
@@ -20,7 +20,6 @@ phases:
   build:
     commands:
       - echo "Starting build phase..."
-
       - |
         # Detect platform if set to auto
         if [ "$PLATFORM" = "auto" ]; then
@@ -56,17 +55,14 @@ phases:
           mkdir -p calculator_deb/usr/local/bin
           cp dist/calculator calculator_deb/usr/local/bin/
 
-          # Create control file
-          cat <<EOF > calculator_deb/DEBIAN/control
-Package: calculator
-Version: 1.0
-Section: base
-Priority: optional
-Architecture: amd64
-Depends: python3
-Maintainer: Tejvir Singh <tejvirs548@gmail.com>
-Description: A simple, fully functional calculator built using Python and Tkinter.
-EOF
+          echo "Package: calculator" > calculator_deb/DEBIAN/control
+          echo "Version: 1.0" >> calculator_deb/DEBIAN/control
+          echo "Section: base" >> calculator_deb/DEBIAN/control
+          echo "Priority: optional" >> calculator_deb/DEBIAN/control
+          echo "Architecture: amd64" >> calculator_deb/DEBIAN/control
+          echo "Depends: python3" >> calculator_deb/DEBIAN/control
+          echo "Maintainer: Tejvir Singh <tejvirs548@gmail.com>" >> calculator_deb/DEBIAN/control
+          echo "Description: A simple, fully functional calculator built using Python and Tkinter." >> calculator_deb/DEBIAN/control
 
           chmod 0755 -R calculator_deb/DEBIAN
           dpkg-deb --build calculator_deb
@@ -84,7 +80,6 @@ artifacts:
 post_build:
   commands:
     - echo "Uploading build to S3..."
-
     - |
       if [ "$PLATFORM" = "windows" ]; then
         aws s3 cp dist/calculator.exe s3://$S3_BUCKET/builds/windows/

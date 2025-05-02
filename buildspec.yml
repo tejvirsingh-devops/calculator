@@ -13,7 +13,7 @@ phases:
     commands:
       - echo "Creating virtual environment..."
       - python -m venv venv
-      - source venv/bin/activate
+      - . venv/bin/activate
       - apt-get update 
       - apt-get install -y dpkg python3-pip python3-venv build-essential 
       - pip install --upgrade pip

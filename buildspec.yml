@@ -51,7 +51,7 @@ phases:
       - mv dist_win/calculator.exe dist/
 
       ## ----------------- Mac Build Placeholder ----------------- ##
-      - echo "Skipping macOS build: Not supported on Linux"
+      - echo "Skipping macOS build Not supported on Linux"
 
       ## ----------------- Upload to S3 ----------------- ##
       - echo "Uploading artifacts to S3..."

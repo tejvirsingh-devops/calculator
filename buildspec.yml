@@ -4,7 +4,6 @@ env:
   variables:
     S3_BUCKET: "calc-win-ubu-mac"
     APP_NAME: "calculator"
-    PLATFORM: "auto"
 
 phases:
   install:
@@ -23,35 +22,38 @@ phases:
         PLATFORM=$(uname | tr '[:upper:]' '[:lower:]')
         export PLATFORM
         echo "Detected platform: $PLATFORM"
+      - echo "Install phase complete."
 
   build:
     commands:
       - echo "Starting build phase..."
+
+      # Detect platform dynamically
       - |
-        # Detect platform if set to auto
-        if [ "$PLATFORM" = "auto" ]; then
-          UNAME=$(uname)
-          echo "uname result: $UNAME"
-          case "$UNAME" in
-            Darwin)
-              PLATFORM="mac"
-              ;;
-            Linux)
-              PLATFORM="linux"
-              ;;
-            MINGW*|MSYS*|CYGWIN*)
-              PLATFORM="windows"
-              ;;
-            *)
-              echo "Unknown platform: $UNAME"
-              exit 1
-              ;;
-          esac
-        fi
+        UNAME=$(uname)
+        echo "uname result: $UNAME"
+        case "$UNAME" in
+          Darwin)
+            PLATFORM="mac"
+            ;;
+          Linux)
+            PLATFORM="linux"
+            ;;
+          MINGW*|MSYS*|CYGWIN*)
+            PLATFORM="windows"
+            ;;
+          *)
+            echo "Unknown platform: $UNAME"
+            exit 1
+            ;;
+        esac
         echo "Detected platform: $PLATFORM"
 
+      # Save platform to environment file to persist to post_build
+      - echo "PLATFORM=$PLATFORM" >> platform.env
+
+      # Platform-specific build steps
       - |
-        # Platform-specific build steps
         if [ "$PLATFORM" = "windows" ]; then
           pyinstaller --onefile --noconsole calculator.py
 
@@ -87,11 +89,15 @@ artifacts:
 post_build:
   commands:
     - echo "Uploading build to S3..."
+
+    # Load PLATFORM from file
+    - source platform.env
+
     - |
       if [ "$PLATFORM" = "windows" ]; then
         aws s3 cp dist/calculator.exe s3://$S3_BUCKET/builds/windows/
       elif [ "$PLATFORM" = "linux" ]; then
-        aws s3 cp /codebuild/output/*/src/calculator_deb.deb s3://$S3_BUCKET/builds/linux/
+        aws s3 cp calculator_deb.deb s3://$S3_BUCKET/builds/linux/
       elif [ "$PLATFORM" = "mac" ]; then
         aws s3 cp dist/Calculator s3://$S3_BUCKET/builds/mac/
       fi

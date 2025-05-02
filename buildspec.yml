@@ -1,0 +1,66 @@
+version: 0.2
+
+env:
+  variables:
+    S3_BUCKET: "calc-win-ubu-mac"
+    APP_NAME: "calculator"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - echo "Installing dependencies..."
+      - apt-get update
+      - apt-get install -y python3-pip python3-venv dpkg build-essential wine wget unzip
+      - pip3 install --upgrade pip
+      - pip3 install pyinstaller
+      - echo "Install complete."
+
+  build:
+    commands:
+      - echo "Build Phase Started"
+
+      ## ----------------- Linux Build ----------------- ##
+      - echo "Building for Linux..."
+      - pyinstaller --onefile --noconsole calculator.py
+      - chmod +x dist/calculator
+      - mkdir -p calculator_deb/DEBIAN
+      - mkdir -p calculator_deb/usr/local/bin
+      - cp dist/calculator calculator_deb/usr/local/bin/
+      - |
+          cat <<EOF > calculator_deb/DEBIAN/control
+          Package: calculator
+          Version: 1.0
+          Section: base
+          Priority: optional
+          Architecture: amd64
+          Depends: python3
+          Maintainer: Tejvir Singh <tejvirs548@gmail.com>
+          Description: A simple, fully functional calculator built using Python and Tkinter.
+          EOF
+      - chmod 0755 -R calculator_deb/DEBIAN
+      - dpkg-deb --build calculator_deb
+
+      ## ----------------- Windows Build using Wine ----------------- ##
+      - echo "Building for Windows..."
+      - wget https://github.com/pyinstaller/pyinstaller/releases/download/v5.13.0/pyinstaller-5.13.0.zip
+      - unzip pyinstaller-5.13.0.zip
+      - WINEPREFIX=~/.wine winecfg -v win10
+      - pyinstaller --onefile --noconsole calculator.py --distpath dist_win
+      - mv dist_win/calculator.exe dist/
+
+      ## ----------------- Mac Build Placeholder ----------------- ##
+      - echo "Skipping macOS build: Not supported on Linux"
+
+      ## ----------------- Upload to S3 ----------------- ##
+      - echo "Uploading artifacts to S3..."
+      - aws s3 cp dist/calculator s3://$S3_BUCKET/builds/linux/
+      - aws s3 cp calculator_deb.deb s3://$S3_BUCKET/builds/linux/
+      - aws s3 cp dist/calculator.exe s3://$S3_BUCKET/builds/windows/
+
+artifacts:
+  files:
+    - dist/**
+    - calculator_deb.deb
+  discard-paths: yes

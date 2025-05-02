@@ -30,7 +30,7 @@ phases:
 
       # Upload to S3
       - echo Uploading to S3...
-      - aws s3 cp dist\calculator.exe s3://%S3_BUCKET%/builds/windows/
+      - aws s3 cp dist\calculator.exe s3://$S3_BUCKET/builds/windows/
 
 artifacts:
   files:

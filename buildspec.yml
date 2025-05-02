@@ -18,6 +18,11 @@ phases:
       - apt-get install -y dpkg python3-pip python3-venv build-essential 
       - pip install --upgrade pip
       - pip install pyinstaller
+      - |
+        # Detect and export platform
+        PLATFORM=$(uname | tr '[:upper:]' '[:lower:]')
+        export PLATFORM
+        echo "Detected platform: $PLATFORM"
 
   build:
     commands:

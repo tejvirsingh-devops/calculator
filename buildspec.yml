@@ -86,7 +86,7 @@ post_build:
       if [ "$PLATFORM" = "windows" ]; then
         aws s3 cp dist/calculator.exe s3://$S3_BUCKET/builds/windows/
       elif [ "$PLATFORM" = "linux" ]; then
-        aws s3 cp calculator_deb.deb s3://$S3_BUCKET/builds/linux/
+        aws s3 cp /codebuild/output/src4230047452/src/calculator_deb.deb s3://$S3_BUCKET/builds/linux/
       elif [ "$PLATFORM" = "mac" ]; then
         aws s3 cp dist/Calculator s3://$S3_BUCKET/builds/mac/
       fi

@@ -1,0 +1,85 @@
+version: 0.2
+
+env:
+  variables:
+    S3_BUCKET: "calc-win-ubu-mac"  # Replace with your actual bucket name
+    APP_NAME: "calculator"
+    PLATFORM: "auto"  # Override with "windows", "linux", or "mac" in CodeBuild env if needed
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.13
+    commands:
+      - echo "Creating virtual environment..."
+      - python -m venv venv
+      - source venv/bin/activate
+      - pip install --upgrade pip
+      - pip install pyinstaller
+
+  build:
+    commands:
+      - echo "Starting build for $PLATFORM"
+
+      # Detect platform if not set
+      - |
+        if [ "$PLATFORM" = "auto" ]; then
+          UNAME=$(uname)
+          echo "uname result: $UNAME"
+          if [[ "$UNAME" == "Darwin" ]]; then
+            PLATFORM="mac"
+          elif [[ "$UNAME" == "Linux" ]]; then
+            PLATFORM="linux"
+          elif [[ "${OS}" == "Windows_NT" || "$UNAME" =~ "MINGW" || "$UNAME" =~ "MSYS" || "$UNAME" =~ "CYGWIN" ]]; then
+            PLATFORM="windows"
+          else
+            echo "Unknown platform: $UNAME"
+            exit 1
+          fi
+        fi
+        echo "Detected platform: $PLATFORM"
+
+      # Run platform-specific build steps
+      - |
+        if [ "$PLATFORM" = "windows" ]; then
+          pyinstaller --onefile --noconsole calculator.py
+        elif [ "$PLATFORM" = "linux" ]; then
+          pyinstaller --onefile --noconsole calculator.py
+          chmod +x calculator.py
+          mkdir -p calculator_deb/DEBIAN
+          mkdir -p calculator_deb/usr/local/bin
+          cp dist/calculator calculator_deb/usr/local/bin/
+          cat <<EOF > calculator_deb/DEBIAN/control
+Package: calculator
+Version: 1.0
+Section: base
+Priority: optional
+Architecture: amd64
+Depends: python3
+Maintainer: Tejvir Singh tejvirs548@gmail.com
+Description: A simple, fully functional calculator built using Python and Tkinter.
+EOF
+          chmod 0755 -R calculator_deb/DEBIAN
+          dpkg-deb --build calculator_deb
+        elif [ "$PLATFORM" = "mac" ]; then
+          pyinstaller --onefile --windowed --name Calculator calculator.py
+        fi
+
+artifacts:
+  files:
+    - dist/**
+    - calculator_deb.deb
+  discard-paths: yes
+
+post_build:
+  commands:
+    - echo "Uploading build to S3..."
+    - |
+      if [ "$PLATFORM" = "windows" ]; then
+        aws s3 cp dist/calculator.exe s3://$S3_BUCKET/builds/windows/
+      elif [ "$PLATFORM" = "linux" ]; then
+        aws s3 cp calculator_deb.deb s3://$S3_BUCKET/builds/linux/
+      elif [ "$PLATFORM" = "mac" ]; then
+        aws s3 cp dist/Calculator s3://$S3_BUCKET/builds/mac/
+      fi
+
